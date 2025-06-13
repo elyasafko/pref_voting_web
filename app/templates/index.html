@@ -1,0 +1,212 @@
+<h2>Strategic Voting in the Context of Negotiating Teams</h2>
+<p><strong>Leora Schmerler and Noam Hazon</strong></p>
+<p>
+  Link to the paper:
+  <a href="https://arxiv.org/abs/2107.14097v2" target="_blank">
+    https://arxiv.org/abs/2107.14097v2
+  </a>
+</p>
+
+<p>
+  This paper is about:<br>
+  Internal strategic voting inside negotiating teams – groups of agents that
+  must first agree on a joint bid before facing an external opponent.<br>
+  Schmerler &amp; Hazon model the team’s decision stage as a positional-scoring
+  vote (e.g., Borda, 3-approval) and ask:
+</p>
+<blockquote>
+  <p>
+    Can one or more team-members misreport their preferences so that their favorite
+    option becomes the unique outcome of the subsequent VAOV negotiation game?
+  </p>
+</blockquote>
+
+<p>They give two polynomial-time algorithms:</p>
+<ul>
+  <li>
+    <strong>C-MaNego (single manipulator)</strong> – decides whether one voter can
+    force her preferred outcome under any positional-scoring rule by computing the
+    first round where the Rational-Compromise (Bucklin-style) intersection is a
+    singleton and adjusting her ballot accordingly.
+  </li>
+  <li>
+    <strong>CC-MaNego (coalition of k)</strong> – extends the idea to a coalition of
+    k manipulators.
+  </li>
+</ul>
+<form method="post">
+  <label>Enter profile (one ranking per line, e.g., A > B > C):</label><br>
+  <textarea name="profile" rows="6" cols="30"></textarea><br><br>
+
+  <p>Please enter the profile using '>' to separate ranked candidates.<br>
+  Each line represents a voter. Example:<br>
+  <i>A > B > C<br>B > A > C</i></p>
+
+  <label>Preferred candidate:</label><br>
+  <input type="text" name="preferred"><br><br>
+
+  <label>Opponent ranking:</label><br>
+  <input type="text" name="opponent_order" placeholder="e.g., B > A > C"><br><br>
+
+  <label>Number of manipulators (k):</label><br>
+  <input
+    type="number"
+    name="k"
+    id="k"
+    min="1"
+    value="1"
+    onchange="onKChange()"
+  ><br><br>
+
+  <label>Voting rule:</label><br>
+  <select name="rule" id="rule" onchange="onRuleChange()">
+    <option value="borda">Borda</option>
+    <option value="plurality">Plurality</option>
+    <option value="veto">Veto</option>
+    <option value="x_approval">X-Approval</option>
+  </select><br><br>
+
+  <div id="x-input" style="display:none;">
+    <label>Value of x:</label><br>
+    <input type="number" name="x_value" id="x_value" min="1"><br><br>
+  </div>
+
+  <button type="button" onclick="fillExample()">Example</button>
+  <button type="button" onclick="fillRandomExample()">Random Example</button><br><br>
+  <input type="submit" value="Run Algorithm">
+  <br><a href="/about">About this project</a>
+</form>
+
+<script>
+  // 1. helper to count candidates
+  function countCandidates() {
+    const text = document.querySelector('textarea[name="profile"]').value;
+    const line = text.split('\n').find(l => l.trim());
+    return line
+      ? line.split('>').map(c => c.trim()).filter(c => c).length
+      : 0;
+  }
+
+  // 2. when k changes, disable/enable Borda and re-run rule logic
+  function onKChange() {
+    const k = parseInt(document.getElementById('k').value) || 1;
+    const ruleSelect = document.getElementById('rule');
+    const bordaOpt = ruleSelect.querySelector('option[value="borda"]');
+
+    if (k > 1) {
+      bordaOpt.disabled = true;
+      if (ruleSelect.value === 'borda') {
+        ruleSelect.value = 'plurality';
+      }
+    } else {
+      bordaOpt.disabled = false;
+    }
+    onRuleChange();
+  }
+
+  // 3. when rule changes, show/hide x input and set its value
+  function onRuleChange() {
+    const rule = document.getElementById('rule').value;
+    const xDiv = document.getElementById('x-input');
+    const xIn = document.getElementById('x_value');
+
+    if (rule === 'borda') {
+      xDiv.style.display = 'none';
+    } else {
+      xDiv.style.display = 'block';
+      const m = countCandidates();
+
+      if (rule === 'plurality') {
+        xIn.value = 1;
+        xIn.disabled = true;
+      } else if (rule === 'veto') {
+        xIn.value = Math.max(m - 1, 1);
+        xIn.disabled = true;
+      } else { // x_approval
+        xIn.disabled = false;
+        xIn.max = m;
+        if (!xIn.value || parseInt(xIn.value) < 1) {
+          xIn.value = 1;
+        }
+      }
+    }
+  }
+
+  // 4. Fisher–Yates shuffle
+  function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  }
+
+  function fillExample() {
+    document.querySelector('textarea[name="profile"]').value =
+`p > c > a > b
+p > b > a > c
+b > p > a > c
+b > a > c > p`;
+    document.querySelector('input[name="preferred"]').value = 'p';
+    document.querySelector('input[name="opponent_order"]').value = 'b > p > a > c';
+    document.getElementById('k').value = 1;
+    document.getElementById('rule').value = 'borda';
+    // re-run our change handlers to update the UI
+    onKChange();
+  }
+
+  function fillRandomExample() {
+    const numCand = Math.floor(Math.random() * 4) + 3; // 3–6
+    const candidates = Array.from({ length: numCand }, (_, i) =>
+      String.fromCharCode(65 + i)
+    );
+
+    const numVoters = Math.floor(Math.random() * 8) + 3; // 3–10
+    const profileLines = [];
+    for (let v = 0; v < numVoters; v++) {
+      const ranking = candidates.slice();
+      shuffle(ranking);
+      profileLines.push(ranking.join(' > '));
+    }
+
+    const preferred =
+      candidates[Math.floor(Math.random() * candidates.length)];
+    const opponentRanking = candidates.slice();
+    shuffle(opponentRanking);
+
+    // pick rule now allowing Borda only if k=1
+    const k = parseInt(document.getElementById('k').value) || 1;
+    const possible = k === 1
+      ? ['borda', 'plurality', 'veto', 'x_approval']
+      : ['plurality', 'veto', 'x_approval'];
+    const rule = possible[Math.floor(Math.random() * possible.length)];
+
+    document.querySelector('textarea[name="profile"]').value =
+      profileLines.join('\n');
+    document.querySelector('input[name="preferred"]').value = preferred;
+    document.querySelector('input[name="opponent_order"]').value =
+      opponentRanking.join(' > ');
+    document.getElementById('rule').value = rule;
+
+    // reset k to 1 or random >1 (your choice)
+    document.getElementById('k').value = 1;
+    onKChange();
+
+    // if we're in x_approval mode, pick a random x
+    if (rule === 'x_approval') {
+      const xVal = Math.floor(Math.random() * numCand) + 1;
+      document.getElementById('x_value').value = xVal;
+    }
+  }
+
+  // 5. on initial load, wire everything up
+  document.addEventListener('DOMContentLoaded', () => {
+    onKChange();
+    document.getElementById('rule').addEventListener('change', onRuleChange);
+    document.getElementById('k').addEventListener('change', onKChange);
+  });
+</script>
+
+
+{% if error %}
+  <p style="color:red">{{ error }}</p>
+{% endif %}

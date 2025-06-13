@@ -1,0 +1,2 @@
+Flask==2.3.2
+git+https://github.com/voting-tools/pref_voting.git@main#egg=pref_voting

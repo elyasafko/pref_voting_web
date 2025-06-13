@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head><title>Result</title></head>
+<body>
+  <h1>Result</h1>
+
+  <p>Preferred candidate: <strong>{{ preferred }}</strong></p>
+
+  {% if result %}
+    <p>✅ Manipulation succeeded.</p>
+    <p>Suggested manipulative vote:</p>
+    <pre>{{ output }}</pre>
+  {% else %}
+    <p>❌ Manipulation is not possible for the given input.</p>
+    <pre>{{ output }}</pre>
+  {% endif %}
+
+  <h2>Execution Logs</h2>
+  <pre style="background:#f0f0f0; padding:10px; border:1px solid #ccc;">{{ logs }}</pre>
+
+  <br>
+  <a href="/">← Try another input</a>
+  <br>
+  <a href="/about">About this project</a>
+</body>
+</html>
