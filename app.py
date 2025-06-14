@@ -1,5 +1,5 @@
 import socket
-from app import create_app
+from myapp import create_app
 
 def find_free_port(start=5000, max_port=6000):
     for port in range(start, max_port):
