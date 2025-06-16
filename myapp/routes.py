@@ -3,7 +3,7 @@ from io import StringIO
 import logging
 import pprint
 import traceback
-from app.pref_voting_backend import strategic_voting
+from myapp.pref_voting_backend import strategic_voting
 
 main = Blueprint('main', __name__)
 
