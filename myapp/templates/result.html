@@ -8,10 +8,13 @@
 
   {% if result %}
     <p>✅ Manipulation succeeded.</p>
+    <p> The algorithm found a way to manipulate the vote to achieve the preferred outcome.</p>
+    <p> That means that if you place your vote as the algorithm suggests, your preferred candidate would be the outcome of the negotiating with the other team!</p>
     <p>Suggested manipulative vote:</p>
     <pre>{{ output }}</pre>
   {% else %}
     <p>❌ Manipulation is not possible for the given input.</p>
+    <p> The algorithm couldn't find a fitting vote that would make your preferred outcome be the outcome of the negotiating with the other team.</p>
     <pre>{{ output }}</pre>
   {% endif %}
 
