@@ -51,7 +51,7 @@
   Each line represents a voter. Example:<br>
   <i>A > B > C<br>B > A > C</i></p>
 
-  <p> Next, you need to choose with which voting rule your team will decide on the final group for the negotiating. </p>
+  <p> Next, choose the voting rule your team will use to pick its negotiation offer.</p>
   <ul>
       <li><strong>Borda</strong> – each candidate gets points according to their position in the ranking (e.g., 3 points for 1st, 2 for 2nd, etc.).</li>
       <li><strong>Plurality</strong> – only the top candidate gets points (1 point) [1,0,0,...,0].</li>
@@ -76,10 +76,9 @@
     <input type="number" name="x_value" id="x_value" min="1"><br><br>
   </div>
 
-  <p>Now, you need to enter the preference of the other team, so we can see which candidate would be the outcome of te negotiating of both groups.</p>
+  <p>Now, you need to enter the preference of the other team, so we can see which candidate would be the outcome of the negotiating between the two groups.</p>
   <label for="opponent_order">Opponent ranking:</label><br>
-  <input type="text" id="opponent_order" name="opponent_order"
-         placeholder="e.g., B > A > C"><br><br>
+  <input type="text" id="opponent_order" name="opponent_order" placeholder="e.g., B > A > C"><br><br>
 
   <label for="preferred">Preferred candidate: (the candidate you want to win the negotiating)</label><br>
   <input type="text" id="preferred" name="preferred"><br><br>
@@ -92,7 +91,6 @@
     id="k"
     min="1"
     value="1"
-    onchange="onKChange()"
   ><br><br><br>
 
   <!-- EXAMPLE MODE SELECTOR -->
@@ -166,6 +164,7 @@
   function onProfileInput() {
     updateLiveCount();
     submitBtn.disabled = !validateProfile();
+    onRuleChange();
   }
   profileEl.addEventListener('input', onProfileInput);
 
@@ -249,17 +248,6 @@ b > a > c > p`.trim();
     onProfileInput();
   });
 
-  // 4. Disable Borda when k>1 and handle X-approval UI
-  function onKChange() {
-    const k = parseInt(document.getElementById('k').value) || 1;
-    const ruleSelect = document.getElementById('rule');
-    const bordaOpt   = ruleSelect.querySelector('option[value="borda"]');
-    if (k > 1) {
-      bordaOpt.disabled = true;
-      if (ruleSelect.value === 'borda') ruleSelect.value = 'plurality';
-    } else bordaOpt.disabled = false;
-    onRuleChange();
-  }
   function countCandidates() {
     return parseLines()[0]?.length || 0;
   }
@@ -288,7 +276,8 @@ b > a > c > p`.trim();
     profileEl.value = '';
     onProfileInput();
     document.getElementById('rule').addEventListener('change', onRuleChange);
-    document.getElementById('k').addEventListener('change', onKChange);
+    onRuleChange();
+    validateProfile();
   });
 </script>
 

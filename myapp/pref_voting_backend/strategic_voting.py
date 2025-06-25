@@ -301,8 +301,15 @@ def _compute_Hi(
 
     Hᵢ = {preferred} ∪ (i-1 best in pt not in Aᵢ(po)), keeping pt order.
     Aᵢ(po) = top-i candidates in po (opponent) order.
-    >>> _compute_Hi("p", 2, [["p", "c", "a", "b"],["p", "b", "a", "c"],["b", "p", "a", "c"],["b", "a", "c", "p"],], ["b", "p", "a", "c"])
-    ['p','a']
+    >>> team_profile = [
+    ...     ["p", "c", "a", "b"],
+    ...     ["p", "b", "a", "c"],
+    ...     ["b", "p", "a", "c"],
+    ...     ["b", "a", "c", "p"],
+    ... ]
+    >>> pt = borda(team_profile)
+    >>> _compute_Hi("p", 2, pt, ["b", "p", "a", "c"])
+    ['p', 'a']
     """
     Ai_po: Set[str] = set(_top_i(opponent_order, i))
     logger.debug(f"[_compute_Hi] i={i}, opponent_top_i={sorted(Ai_po)}")
@@ -475,6 +482,10 @@ def algorithm2_coalitional(
     (False, None)
     >>> algorithm2_coalitional(borda, [["p", "d", "a", "b", "c", "e"],["a", "p", "b", "c", "d", "e"],["b", "c", "a", "p", "d", "e"],], ["a", "p", "b", "c", "d", "e"], "p", k=2)
     (True, [['p', 'e', 'd', 'c', 'b', 'a'], ['p', 'e', 'd', 'c', 'b', 'a']])
+
+    # Example from the paper
+    >>> algorithm2_coalitional(borda, [["c", "a", "p", "b"],["a", "b", "c", "p"],["a", "b", "c", "p"],["a", "b", "p", "c"],], ["p", "b", "a", "c"], "p", k=2)
+    (True, [['p', 'a', 'c', 'b'], ['p', 'a', 'c', 'b']])
     """
     if k <= 0:
         logger.warning("[Alg-2] k=0 manipulators – impossible by definition")
@@ -484,66 +495,76 @@ def algorithm2_coalitional(
         return False, None
 
     team_profile = _explode_profile(team_profile)
-
-    logger.info("\n[Alg-2] =========================================================")
-    logger.info(f"[Alg-2] opponent order  : {opponent_order}")
-    logger.info(f"[Alg-2] preferred       : '{preferred}'")
-    logger.info(f"[Alg-2] team profile ({len(team_profile)} voters): {team_profile}")
-    logger.info(f"[Alg-2] coalition size k = {k}")
-    # ── 0  guards ─────────────────────────────────────────────────────────
-
     m = len(opponent_order)
+
     if not check_validation(opponent_order, preferred, m):
         logger.warning("[Alg-2] opponent ranks 'p' too low ⇒ manipulation impossible")
         return False, None
 
-    # ── SWF order of the honest team ───────────────────────────────────
-    pt = F(team_profile)
-    logger.info("\n[Alg-2] =========================================================")
-    logger.info(f"[Alg-2] SWF order before coalition: {pt}")
+    first_round = True
+    while True:
+        logger.info("\n[Alg-2] =========================================================")
+        logger.info(f"[Alg-2] opponent order  : {opponent_order}")
+        logger.info(f"[Alg-2] preferred       : '{preferred}'")
+        logger.info(f"[Alg-2] team profile ({len(team_profile)} voters): {team_profile}")
+        logger.info(f"[Alg-2] coalition size k = {k}")
 
-    # ── iterate depths i = 1 … ⌈m/2⌉ ──────────────────────────────────
-    for i in range(1, math.ceil(m / 2) + 1):
-        logger.info(f"\n[Alg-2] ===== depth i = {i} =====")
+        # ── SWF order of the honest team ───────────────────────────────────
+        pt = F(team_profile)
+        logger.info(f"[Alg-2] SWF order before coalition: {pt}")
 
-        Hi = _compute_Hi(preferred, i, pt, opponent_order)
-        logger.info(f"[Alg-2] H_i = {Hi}   (size {len(Hi)} vs required {i})")
-        if len(Hi) < i:
-            logger.info("[Alg-2] › not enough candidates – skip depth")
-            continue
+        # ── iterate depths i = 1 … ⌈m/2⌉ ──────────────────────────────────
+        for i in range(1, math.ceil(m / 2) + 1):
+            logger.info(f"\n[Alg-2] ===== depth i = {i} =====")
+            Hi = _compute_Hi(preferred, i, pt, opponent_order)
+            logger.info(f"[Alg-2] H_i = {Hi}   (size {len(Hi)} vs required {i})")
+            if len(Hi) < i:
+                logger.info("[Alg-2] › not enough candidates – skip depth")
+                continue
 
-        pm: List[List[str]] = []
+            pm: List[List[str]] = []
 
-        # ── construct ballots l = 1 … k with the *same* Hᵢ ────────────
-        for l in range(1, k + 1):
-            cur_pt = F(team_profile + pm)
-            logger.info(f"[Alg-2] manipulator #{l} sees SWF: {cur_pt}")
+            # ── construct ballots l = 1 … k with the *same* Hᵢ ────────────
+            for l in range(1, k + 1):
+                cur_pt = F(team_profile + pm)
+                logger.info(f"[Alg-2] manipulator #{l} sees SWF: {cur_pt}")
 
-            # top block (Hᵢ) – place the least-preferred first (rev order)
-            hi_block = list(reversed([c for c in cur_pt if c in Hi]))
+                # top block (Hᵢ) – place the least-preferred first (rev order)
+                hi_block = list(reversed([c for c in cur_pt if c in Hi]))
+                # bottom block (O\Hᵢ) – place the most-preferred first
+                lo_block = list(reversed([c for c in cur_pt if c not in Hi]))
 
-            # bottom block (O\Hᵢ) – place the most-preferred first
-            lo_block = list(reversed([c for c in cur_pt if c not in Hi]))
+                pa = hi_block + lo_block
+                pm.append(pa)
 
-            pa = hi_block + lo_block
-            pm.append(pa)
+                logger.info(f"[Alg-2] manipulator #{l} ballot = {pa}")
 
-            logger.info(f"[Alg-2] ballot   = {pa}")
-            logger.info(f"[Alg-2] hi_block = {hi_block}")
-            logger.info(f"[Alg-2] lo_block = {lo_block}")
+            if _rc_result(F(team_profile + pm), opponent_order) == preferred:
+                # ---------- second-round success notice (Borda only) ----------
+                if not first_round:  # we are in the k+1 retry
+                    logger.warning("[Alg-2] ℹ️ k failed but k+1 succeeded – cannot be sure whether the original k was truly insufficient.")
+                logger.info("[Alg-2] ✅ success – coalition found")
+                return True, pm
 
-        # ── 4 evaluate RC after the whole coalition is in ───────────────
-        rc_outcome = _rc_result(F(team_profile + pm), opponent_order)
-        logger.debug(f"[Alg-2] RC outcome with coalition = {rc_outcome}")
+            logger.info("[Alg-2] ✘ depth failed – trying next i")
 
-        if rc_outcome == preferred:
-            logger.info("[Alg-2] ✅ success – coalition found")
-            return True, pm
+        # ===========  B O R D A   k → k+1  fallback  ====================
+        if first_round and F.__name__ == "borda":
+            logger.info("[Alg-2] k=%d failed under Borda – retrying with k+1.", k)
+            first_round = False  # second (and last) pass
+            k += 1
+            continue  # rerun the while-loop once
+        # ===========  end of Borda fallback  ============================
 
-        logger.info("[Alg-2] ✘ depth failed – trying next i")
+        # reached only if first round failed and either:
+        #   – it wasn’t Borda, or
+        #   – Borda fallback also failed
+        if not first_round:  # we **did** try k+1 and still failed
+            logger.info("[Alg-2] ❌ k+1 also failed – logged for reference.")
+        else:  # non-Borda rule failed once
+            logger.info("[Alg-2] ❌ no successful coalition manipulation found")
 
-    logger.info("\n[Alg-2] ❌ no successful coalition manipulation found")
-    return False, None
+        return False, None
 
 
 # ───────────────────────────── demo harness ──────────────────────────────
