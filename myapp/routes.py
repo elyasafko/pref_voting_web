@@ -34,8 +34,6 @@ def index():
             # build F:
             m = len(profile_list[0])
             if rule == 'borda':
-                if k > 1:
-                    raise ValueError("Borda cannot be used with multiple manipulators.")
                 F = strategic_voting.borda
             elif rule == 'plurality':
                 F = strategic_voting.make_x_approval(1)
