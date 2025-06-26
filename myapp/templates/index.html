@@ -100,6 +100,9 @@
         <strong> Example </strong> - loads a predefined example profile with a preferred candidate and opponent order.
       </li>
       <li>
+        <strong> Example K=2 </strong> - loads a predefined example profile with a preferred candidate and opponent order, but with k=2 manipulators.
+      </li>
+      <li>
         <strong> Random Example </strong> - generates a random profile with a random preferred candidate and opponent order, you can choose the number of candidates and/or voters.
       </li>
       <li>
@@ -108,6 +111,7 @@
     </ul>
     <legend>Load an example:</legend>
     <label><input type="radio" name="mode" value="example" checked> Example</label>
+    <label><input type="radio" name="mode" value="example K=2"> Example K=2</label>
     <label><input type="radio" name="mode" value="random"> Random Example</label>
     <label><input type="radio" name="mode" value="totalRandom"> Total Random</label>
 
@@ -191,6 +195,17 @@ b > p > a > c
 b > a > c > p`.trim();
       document.getElementById('preferred').value      = 'p';
       document.getElementById('opponent_order').value = 'b > p > a > c';
+    }
+    else if (mode === 'example K=2') {
+      profileEl.value = `
+E > D > C > B > A
+C > D > E > B > A
+B > C > D > A > E
+D > E > C > A > B
+E > B > A > D > C`.trim();
+        document.getElementById('preferred').value      = 'A';
+        document.getElementById('opponent_order').value = 'E > A > D > C > B';
+        document.getElementById('k').value = 2;
     }
     else if (mode === 'random') {
       // CUSTOM-SIZED random
