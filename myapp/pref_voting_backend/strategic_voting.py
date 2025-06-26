@@ -311,15 +311,27 @@ def _compute_Hi(
     >>> _compute_Hi("p", 2, pt, ["b", "p", "a", "c"])
     ['p', 'a']
     """
+    logger.info(f"[_compute_Hi] ▶ Building H_{i} for preferred={preferred!r}")
+    logger.info(f"    honest SWF order (pt): {pt}")
+    logger.info(f"    opponent top-{i}      : {opponent_order[:i]}")
     Ai_po: Set[str] = set(_top_i(opponent_order, i))
-    logger.debug(f"[_compute_Hi] i={i}, opponent_top_i={sorted(Ai_po)}")
+    logger.debug(f"[_compute_Hi] opponent_top_i (sorted) = {sorted(Ai_po)}")
 
     H: List[str] = [preferred]
     logger.debug(f"[_compute_Hi] initially H = {H}")
 
     for c in pt:
         if len(H) == i: # already have i candidates
+            logger.debug(f"[_compute_Hi] reached target size {i}, stopping loop")
             break
+
+        if c == preferred:
+            logger.debug(f"[_compute_Hi] skip '{c}': is preferred")
+            continue
+
+        if c in Ai_po:
+            logger.debug(f"[_compute_Hi] skip '{c}': in opponent top-{i}")
+            continue
 
         if c != preferred and c not in Ai_po: # not in opponent's top-i
             H.append(c)
@@ -404,23 +416,27 @@ def algorithm1_single_voter(
         return False, None
 
     team_profile = _explode_profile(team_profile)
+    m = len(opponent_order)
 
     logger.info("\n[Alg-1] =========================================================")
-    logger.info(f"[Alg-1] opponent order  : {opponent_order}")
-    logger.info(f"[Alg-1] preferred       : '{preferred}'")
-    logger.info(f"[Alg-1] team profile ({len(team_profile)} voters): {team_profile}")
+    logger.info(f"[Alg-1] Opponent ranking        : {opponent_order}")
+    logger.info(f"[Alg-1] Your preferred candidate: {preferred!r}")
+    logger.info(f"[Alg-1] Number of candidates   : {m}")
+    logger.info(f"[Alg-1] Social welfare rule     : {F.__name__}")
+    logger.info(f"[Alg-1] Team‐size (honest voters) ({len(team_profile)} voters): {team_profile}")
 
-    m = len(opponent_order)
     if not check_validation(opponent_order, preferred, m):
         logger.warning("[Alg-1] guard failed – manipulation impossible")
         return False, None
 
     # SWF order of the honest team
+    logger.info("[Alg-1] Phase 1: Compute honest SWF ordering")
     pt = F(team_profile)
     logger.info(f"[Alg-1] SWF order (pt)  : {pt}")
 
     # iterate i = 1 … ⌈m/2⌉
     for i in range(1, math.ceil(m / 2) + 1):
+        logger.info("[Alg-1] Phase 2: Try each depth i to build Hᵢ and test")
         logger.info(f"\n[Alg-1] ----- depth i = {i} -----")
 
         Hi = _compute_Hi(preferred, i, pt, opponent_order)
@@ -504,16 +520,20 @@ def algorithm2_coalitional(
     first_round = True
     while True:
         logger.info("\n[Alg-2] =========================================================")
-        logger.info(f"[Alg-2] opponent order  : {opponent_order}")
-        logger.info(f"[Alg-2] preferred       : '{preferred}'")
-        logger.info(f"[Alg-2] team profile ({len(team_profile)} voters): {team_profile}")
+        logger.info(f"[Alg-2] Your preferred candidate: {preferred!r}")
+        logger.info(f"[Alg-2] Number of candidates   : {m}")
+        logger.info(f"[Alg-2] Opponent ranking        : {opponent_order}")
+        logger.info(f"[Alg-2] Social welfare rule     : {F.__name__}")
+        logger.info(f"[Alg-2] Team‐size (honest voters) ({len(team_profile)} voters): {team_profile}")
         logger.info(f"[Alg-2] coalition size k = {k}")
 
         # ── SWF order of the honest team ───────────────────────────────────
+        logger.info("[Alg-2] Phase 1: Compute honest SWF ordering")
         pt = F(team_profile)
         logger.info(f"[Alg-2] SWF order before coalition: {pt}")
 
         # ── iterate depths i = 1 … ⌈m/2⌉ ──────────────────────────────────
+        logger.info("[Alg-2] Phase 2: For each depth i, build Hᵢ and try k ballots")
         for i in range(1, math.ceil(m / 2) + 1):
             logger.info(f"\n[Alg-2] ===== depth i = {i} =====")
             Hi = _compute_Hi(preferred, i, pt, opponent_order)
